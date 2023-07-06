@@ -36,7 +36,7 @@
 #include <math.h>
 
 #include <nav_msgs/Odometry.h>
-#include <opencv/cv.h>
+#include <opencv2/opencv.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -400,10 +400,10 @@ int main(int argc, char** argv)
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
             ("/velodyne_cloud_registered", 100);
 
-    ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry> ("/aft_mapped_to_init", 1);
+    ros::Publisher pubOdomAftMapped = nh.advertise<nav_msgs::Odometry> ("aft_mapped_to_init", 1);
     nav_msgs::Odometry odomAftMapped;
-    odomAftMapped.header.frame_id = "/camera_init";
-    odomAftMapped.child_frame_id = "/aft_mapped";
+    odomAftMapped.header.frame_id = "camera_init";
+    odomAftMapped.child_frame_id = "aft_mapped";
 
     std::string map_file_path;
     ros::param::get("~map_file_path",map_file_path);
@@ -443,7 +443,10 @@ int main(int argc, char** argv)
         laserCloudCornerArray2[i].reset(new pcl::PointCloud<PointType>());
         laserCloudSurfArray2[i].reset(new pcl::PointCloud<PointType>());
     }
-
+//--------------------------impact printing changes---------------
+    pcl::PCDWriter pcd_writer;
+    std::string surf_filename(map_file_path + "/surf.pcd");
+    pcl::PointCloud<pcl::PointXYZI> surf_points, corner_points;
 //------------------------------------------------------------------------------------------------------
     ros::Rate rate(100);
     bool status = ros::ok();
@@ -1117,13 +1120,13 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudSurround3;
             pcl::toROSMsg(*laserCloudSurround2, laserCloudSurround3);
             laserCloudSurround3.header.stamp = ros::Time().fromSec(timeLaserCloudCornerLast);
-            laserCloudSurround3.header.frame_id = "/camera_init";
+            laserCloudSurround3.header.frame_id = "camera_init";
             pubLaserCloudSurround.publish(laserCloudSurround3);
 
             sensor_msgs::PointCloud2 laserCloudSurround3_corner;
             pcl::toROSMsg(*laserCloudSurround2_corner, laserCloudSurround3_corner);
             laserCloudSurround3_corner.header.stamp = ros::Time().fromSec(timeLaserCloudCornerLast);
-            laserCloudSurround3_corner.header.frame_id = "/camera_init";
+            laserCloudSurround3_corner.header.frame_id = "camera_init";
             pubLaserCloudSurround_corner.publish(laserCloudSurround3_corner);
             
 
@@ -1141,7 +1144,7 @@ int main(int argc, char** argv)
             sensor_msgs::PointCloud2 laserCloudFullRes3;
             pcl::toROSMsg(*laserCloudFullResColor, laserCloudFullRes3);
             laserCloudFullRes3.header.stamp = ros::Time().fromSec(timeLaserCloudCornerLast);
-            laserCloudFullRes3.header.frame_id = "/camera_init";
+            laserCloudFullRes3.header.frame_id = "camera_init";
             pubLaserCloudFullRes.publish(laserCloudFullRes3);
 
             *laserCloudFullResColor_pcd += *laserCloudFullResColor;
@@ -1171,7 +1174,7 @@ int main(int argc, char** argv)
             q.setY( odomAftMapped.pose.pose.orientation.y );
             q.setZ( odomAftMapped.pose.pose.orientation.z );
             transform.setRotation( q );
-            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "/camera_init", "/aft_mapped" ) );
+            br.sendTransform( tf::StampedTransform( transform, odomAftMapped.header.stamp, "camera_init", "aft_mapped" ) );
 
             kfNum++;
 
@@ -1191,9 +1194,13 @@ int main(int argc, char** argv)
 
         status = ros::ok();
         rate.sleep();
+        surf_points = *laserCloudSurfFromMap;
+        if (surf_points.size() > 0) {
+            pcd_writer.writeBinary(surf_filename, surf_points);
+        }
     }
     //--------------------------save map---------------
-    std::string surf_filename(map_file_path + "/surf.pcd");
+    // std::string surf_filename(map_file_path + "/surf.pcd");
     std::string corner_filename(map_file_path + "/corner.pcd");
     std::string all_points_filename(map_file_path + "/all_points.pcd");
     std::ofstream keyframe_file(map_file_path + "/key_frame.txt");
@@ -1202,11 +1209,11 @@ int main(int argc, char** argv)
                           << kf[4] << " "<< kf[5] << " "<< kf[6] << " "<< std::endl;
     }
     keyframe_file.close();
-    pcl::PointCloud<pcl::PointXYZI> surf_points, corner_points;
+    // pcl::PointCloud<pcl::PointXYZI> surf_points, corner_points;
     surf_points = *laserCloudSurfFromMap;
     corner_points = *laserCloudCornerFromMap;
       if (surf_points.size() > 0 && corner_points.size() > 0) {
-    pcl::PCDWriter pcd_writer;
+    // pcl::PCDWriter pcd_writer;
     std::cout << "saving...";
     pcd_writer.writeBinary(surf_filename, surf_points);
     pcd_writer.writeBinary(corner_filename, corner_points);

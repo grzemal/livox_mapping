@@ -1,14 +1,14 @@
 <launch>
 
-  <arg name="rviz" default="true" />
+  <arg name="rviz" default="false" />
 
   <node pkg="livox_mapping" type="loam_scanRegistration" name="scanRegistration" output="screen">
   </node>
 
   <node pkg="livox_mapping" type="loam_laserMapping" name="laserMapping" output="screen">
-  <param name="map_file_path" type="string" value=" " />
-  <param name="filter_parameter_corner" type="double" value="0.1" />
-  <param name="filter_parameter_surf" type="double" value="0.2" />
+  <param name="map_file_path" type="string" value="/home/grzegorz/catkin_ws/src/impact_printing/point_cloud_processing/data/livox/" />
+  <param name="filter_parameter_corner" type="double" value="0.01" />
+  <param name="filter_parameter_surf" type="double" value="0.02" />
   </node>
 
   <group if="$(arg rviz)">
